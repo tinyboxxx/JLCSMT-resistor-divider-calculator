@@ -11,11 +11,11 @@ resistors = [
 ]
 
 # Streamlit interface
-st.title("Voltage Divider Resistor Calculator")
+st.title("Voltage Divider Resistor Calculator with Power Check")
 
 # User inputs
-Vin = st.number_input("Input Voltage (Vin)", min_value=0.0, value=3.3)
-Vout = st.number_input("Desired Output Voltage (Vout)", min_value=0.0, value=1.309)
+Vin = st.number_input("Input Voltage (Vin)", min_value=0.0, value=48.0)
+Vout = st.number_input("Desired Output Voltage (Vout)", min_value=0.001, value=0.986, step=0.001,format="%.3f")
 range_min, range_max = st.slider("Select Resistor Range (Ω)", min_value=1, max_value=10000000, value=(1000, 1000000))
 
 # Filter resistors within selected range
@@ -39,7 +39,23 @@ for R1, R2 in itertools.permutations(filtered_resistors, 2):
         best_pair = (R1, R2)
 
 if best_pair[0] is not None and best_pair[1] is not None:
-    st.success(f"Best resistor pair: R1 = {best_pair[0]}Ω, R2 = {best_pair[1]}Ω")
-    st.success(f"Calculated output voltage: {Vin * best_pair[1] / (best_pair[0] + best_pair[1])}V")
+    R1, R2 = best_pair
+    Vout_actual = Vin * R2 / (R1 + R2)
+    
+    # Calculate power dissipation for R1 and R2
+    I = Vin / (R1 + R2)
+    P_R1 = I**2 * R1
+    P_R2 = I**2 * R2
+    
+    st.success(f"Best resistor pair: R1 = {R1}Ω, R2 = {R2}Ω")
+    st.success(f"Calculated output voltage: {Vout_actual}V")
+    st.success(f"Power dissipation in R1: {P_R1:.6f}W")
+    st.success(f"Power dissipation in R2: {P_R2:.6f}W")
+    
+    # Check if power dissipation exceeds 0603 resistor rated power (0.1W)
+    if P_R1 > 0.1:
+        st.error(f"Power dissipation in R1 exceeds the rated power of a 0603 resistor!")
+    if P_R2 > 0.1:
+        st.error(f"Power dissipation in R2 exceeds the rated power of a 0603 resistor!")
 else:
     st.warning("No valid resistor pair found within the selected range.")
